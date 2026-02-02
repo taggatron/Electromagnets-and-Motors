@@ -1,12 +1,24 @@
 // --- Simulation 1: Electromagnet ---
 const sketch1 = (p) => {
-    let currentSlider, turnsSlider;
+    let currentSlider, turnsSlider, coreToggle;
+    let hasCore = true; // Default
     let paperclips = [];
 
     p.setup = () => {
         let canvas = p.createCanvas(p.select('#canvas1').width, p.select('#canvas1').height);
         currentSlider = p.select('#sim1-current');
         turnsSlider = p.select('#sim1-turns');
+        coreToggle = p.select('#sim1-core-toggle');
+        
+        // Ensure UI matches state
+        updateToggleUI();
+
+        if (coreToggle) {
+            coreToggle.mousePressed(() => {
+                hasCore = !hasCore;
+                updateToggleUI();
+            });
+        }
         
         // Initialize paperclips
         for(let i=0; i<15; i++) {
@@ -19,6 +31,18 @@ const sketch1 = (p) => {
         }
     };
 
+    function updateToggleUI() {
+        const bg = p.select('#core-toggle-bg');
+        const dot = p.select('#core-toggle-dot');
+        if (hasCore) {
+            bg.style('background-color', '#10b981'); // emerald-500
+            dot.style('transform', 'translateX(1.25rem)');
+        } else {
+            bg.style('background-color', '#1e293b'); // slate-800
+            dot.style('transform', 'translateX(0)');
+        }
+    }
+
     p.draw = () => {
         p.background(241, 245, 249); // light gray
         
@@ -26,22 +50,63 @@ const sketch1 = (p) => {
         let turns = parseInt(turnsSlider.value());
         
         // Calculate Magnetic Strength (arbitrary units)
-        let strength = (current * turns) / 500; 
+        // With core: Divide by 500 (Existing logic for reasonable max)
+        // Without core: Divide by 2000 (Much weaker)
+        let strength = hasCore ? (current * turns) / 500 : (current * turns) / 2500; 
 
-        // Draw Core
-        p.fill(100);
+        // Draw Core (or Air Core placeholder)
         p.noStroke();
         p.rectMode(p.CENTER);
+        if (hasCore) {
+            p.fill(100); // Iron gray
+        } else {
+            p.fill(220); // Light air/plastic holder
+            p.stroke(200);
+            p.strokeWeight(1);
+        }
         p.rect(p.width/2, p.height/2 - 50, 200, 40, 5);
 
         // Draw Field Lines (opacity based on strength)
         p.noFill();
-        p.stroke(100, 116, 139, p.map(strength, 0, 4, 0, 255));
+        // Scale opacity so lines are visible but faint if weak
+        let opacity = hasCore ? p.map(strength, 0, 4, 0, 255) : p.map(strength, 0, 0.8, 0, 150);
+        
+        p.stroke(100, 116, 139, opacity);
         p.strokeWeight(2);
         for(let i=1; i<=3; i++) {
             p.arc(p.width/2, p.height/2 - 50, 220 + i*40, 100 + i*60, p.PI, 0);
             p.arc(p.width/2, p.height/2 - 50, 220 + i*40, 100 + i*60, 0, p.PI);
         }
+        
+        // --- Draw Wires & Current Arrows ---
+        let wireY = p.height/2 + 50; 
+        
+        // Wires
+        p.stroke(50);
+        p.strokeWeight(3);
+        p.noFill();
+        // Left Wire (In)
+        p.line(0, p.height, p.width/2 - 90, p.height/2 - 50); 
+        // Right Wire (Out)
+        p.line(p.width, p.height, p.width/2 + 90, p.height/2 - 50);
+
+        // Current Arrows (Animated)
+        if (current > 5) {
+            p.fill(255, 0, 0);
+            p.noStroke();
+            let arrowPos = (p.frameCount % 60) / 60; // 0 to 1 loop
+            
+            // Left Wire Arrow (Going Up/In)
+            let x1 = p.lerp(0, p.width/2 - 90, arrowPos);
+            let y1 = p.lerp(p.height, p.height/2 - 50, arrowPos);
+            drawArrowHead(p, x1, y1, Math.atan2((p.height/2 - 50) - p.height, (p.width/2 - 90) - 0));
+
+            // Right Wire Arrow (Going Down/Out)
+            let x2 = p.lerp(p.width/2 + 90, p.width, arrowPos);
+            let y2 = p.lerp(p.height/2 - 50, p.height, arrowPos);
+            drawArrowHead(p, x2, y2, Math.atan2(p.height - (p.height/2 - 50), p.width - (p.width/2 + 90)));
+        }
+        // -----------------------------
 
         // Draw Coils
         p.strokeWeight(4);
@@ -58,8 +123,7 @@ const sketch1 = (p) => {
             let x = startX + i * spacing;
             // Draw front part of coil
             p.arc(x + spacing/2, p.height/2 - 50, spacing, 50, 0, p.PI);
-            // Draw back part (darker) behind core? 
-            // Simplified 2D view: just spirals
+            // Back part simplified
             p.line(x + spacing/2, p.height/2 - 25, x + spacing * 1.5, p.height/2 - 75); 
         }
 
@@ -69,6 +133,11 @@ const sketch1 = (p) => {
         p.noFill();
 
         paperclips.forEach(clip => {
+            // Threshold logic needs to adjust for much lower strength without core
+            // But realistically, without iron core, it shouldn't pick up much unless HUGE current.
+            // Let's keep the threshold fixed at 2.0 T for pickup.
+            // Without core, max strength is (100*50)/2500 = 2.0 T. So barely picks up at max.
+            
             if (strength > 2 && !clip.captured) {
                 // Fly towards magnet
                 clip.y = p.lerp(clip.y, p.height/2, 0.1);
@@ -91,8 +160,19 @@ const sketch1 = (p) => {
         p.fill(50);
         p.noStroke();
         p.textAlign(p.CENTER);
-        p.text(`Field Strength: ${strength.toFixed(1)} T`, p.width/2, p.height - 50);
+        p.text(`Field Strength: ${strength.toFixed(2)} T`, p.width/2, p.height - 50);
+        p.text(hasCore ? "Iron Core" : "Air Core", p.width/2, p.height - 30);
     };
+
+    function drawArrowHead(p, x, y, angle) {
+        p.push();
+        p.translate(x, y);
+        p.rotate(angle);
+        p.fill(255, 0, 0); // Red arrow
+        p.noStroke();
+        p.triangle(0, 0, -10, -5, -10, 5);
+        p.pop();
+    }
 
     p.windowResized = () => {
         p.resizeCanvas(p.select('#canvas1').width, p.select('#canvas1').height);
