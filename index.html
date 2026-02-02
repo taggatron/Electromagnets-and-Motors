@@ -38,6 +38,16 @@
         .nav-transition {
             transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
         }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in-up {
+            opacity: 0; /* Star invisible */
+            animation: fadeInUp 0.5s ease-out forwards;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
@@ -312,7 +322,7 @@
             const targetBtn = document.getElementById(tab === 'learn' ? 'nav-learn' : 'nav-assess');
             
             // Move to 70%
-            moveHighlightTo(targetBtn, 0.7);
+            moveHighlightTo(targetBtn, 0.5);
             
             // Squeeze
             if (pill) pill.classList.add('pill-squeezed');
@@ -353,9 +363,12 @@
             const btnLearn = document.getElementById('nav-learn');
             const btnAssess = document.getElementById('nav-assess');
 
+            let containerToShow;
+
             if (tab === 'learn') {
                 learn.classList.remove('hidden');
                 assess.classList.add('hidden');
+                containerToShow = learn;
                 
                 btnLearn.classList.add('text-white');
                 btnLearn.classList.remove('text-slate-400');
@@ -365,11 +378,29 @@
                 learn.classList.add('hidden');
                 assess.classList.remove('hidden');
                 initGame(); 
+                containerToShow = assess;
                 
                 btnAssess.classList.add('text-white');
                 btnAssess.classList.remove('text-slate-400');
                 btnLearn.classList.add('text-slate-400');
                 btnLearn.classList.remove('text-white');
+            }
+
+            // Animate Children Sequentially
+            if (containerToShow) {
+                // Select direct children meant for layout (sections or main cards)
+                const children = containerToShow.querySelectorAll(':scope > section, :scope > div');
+                
+                children.forEach((child, index) => {
+                    // Reset animation
+                    child.classList.remove('animate-fade-in-up');
+                    child.style.animationDelay = '0s';
+                    void child.offsetWidth; // Trigger reflow
+                    
+                    // Apply new animation with stagger
+                    child.style.animationDelay = `${index * 0.15}s`; // 150ms stagger
+                    child.classList.add('animate-fade-in-up');
+                });
             }
         }
 
