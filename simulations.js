@@ -300,19 +300,23 @@ const sketch1 = (p) => {
 
         // Current Arrows (Animated)
         if (current > 5) {
-            p.fill(255, 0, 0);
-            p.noStroke();
-            let arrowPos = (p.frameCount % 60) / 60; // 0 to 1 loop
+            // Number of arrows increases with current (1 to 5)
+            let numArrows = p.floor(p.map(current, 0, 100, 1, 6)); 
             
-            // Left Wire Arrow (Going Up/In)
-            let x1 = p.lerp(0, p.width/2 - 90, arrowPos);
-            let y1 = p.lerp(p.height, p.height/2 - 50, arrowPos);
-            drawArrowHead(p, x1, y1, Math.atan2((p.height/2 - 50) - p.height, (p.width/2 - 90) - 0));
+            for (let i = 0; i < numArrows; i++) {
+                let offset = i / numArrows;
+                let arrowPos = ((p.frameCount % 60) / 60 + offset) % 1;
+                
+                // Left Wire Arrow (Going Up/In)
+                let x1 = p.lerp(0, p.width/2 - 90, arrowPos);
+                let y1 = p.lerp(p.height, p.height/2 - 50, arrowPos);
+                drawArrowHead(p, x1, y1, Math.atan2((p.height/2 - 50) - p.height, (p.width/2 - 90) - 0));
 
-            // Right Wire Arrow (Going Down/Out)
-            let x2 = p.lerp(p.width/2 + 90, p.width, arrowPos);
-            let y2 = p.lerp(p.height/2 - 50, p.height, arrowPos);
-            drawArrowHead(p, x2, y2, Math.atan2(p.height - (p.height/2 - 50), p.width - (p.width/2 + 90)));
+                // Right Wire Arrow (Going Down/Out)
+                let x2 = p.lerp(p.width/2 + 90, p.width, arrowPos);
+                let y2 = p.lerp(p.height/2 - 50, p.height, arrowPos);
+                drawArrowHead(p, x2, y2, Math.atan2(p.height - (p.height/2 - 50), p.width - (p.width/2 + 90)));
+            }
         }
         // -----------------------------
 
@@ -376,7 +380,7 @@ const sketch1 = (p) => {
         p.push();
         p.translate(x, y);
         p.rotate(angle);
-        p.fill(255, 0, 0); // Red arrow
+        p.fill(255); // White arrow
         p.noStroke();
         p.triangle(0, 0, -10, -5, -10, 5);
         p.pop();
