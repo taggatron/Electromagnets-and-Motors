@@ -252,7 +252,7 @@ const sketch1 = (p) => {
     }
 
     p.draw = () => {
-        p.background(241, 245, 249); // light gray
+        p.clear();
         
         let current = parseInt(currentSlider.value());
         let turns = parseInt(turnsSlider.value());
@@ -279,7 +279,7 @@ const sketch1 = (p) => {
         // Scale opacity so lines are visible but faint if weak
         let opacity = hasCore ? p.map(strength, 0, 4, 0, 255) : p.map(strength, 0, 0.8, 0, 150);
         
-        p.stroke(100, 116, 139, opacity);
+        p.stroke(255, 255, 255, opacity); // White lines for dark background
         p.strokeWeight(2);
         for(let i=1; i<=3; i++) {
             p.arc(p.width/2, p.height/2 - 50, 220 + i*40, 100 + i*60, p.PI, 0);
@@ -290,7 +290,7 @@ const sketch1 = (p) => {
         let wireY = p.height/2 + 50; 
         
         // Wires
-        p.stroke(50);
+        p.stroke(184, 115, 51); // Copper color (same as coil)
         p.strokeWeight(3);
         p.noFill();
         // Left Wire (In)
@@ -336,7 +336,7 @@ const sketch1 = (p) => {
         }
 
         // Draw Paperclips
-        p.stroke(80);
+        p.stroke(200); // Light silver
         p.strokeWeight(2);
         p.noFill();
 
@@ -365,7 +365,7 @@ const sketch1 = (p) => {
         });
         
         // Info text
-        p.fill(50);
+        p.fill(220); // Light text
         p.noStroke();
         p.textAlign(p.CENTER);
         p.text(`Field Strength: ${strength.toFixed(2)} T`, p.width/2, p.height - 50);
@@ -404,7 +404,7 @@ const sketch2 = (p) => {
     };
 
     p.draw = () => {
-        p.background(241, 245, 249);
+        p.clear();
         
         // Draw Magnets
         p.noStroke();
@@ -422,7 +422,7 @@ const sketch2 = (p) => {
         p.text(fieldDirection === 1 ? 'S' : 'N', p.width-50, p.height/2);
 
         // Magnetic Field Lines
-        p.stroke(150);
+        p.stroke(255, 100); // White with opacity
         p.strokeWeight(1);
         for(let y=100; y<p.height-100; y+=40) {
             drawArrow(p, 85, y, p.width-85, y, fieldDirection);
@@ -447,7 +447,7 @@ const sketch2 = (p) => {
 
         // Draw Wire (Cross section)
         p.fill('#f59e0b');
-        p.stroke(0);
+        p.stroke(255); // White stroke outline
         p.strokeWeight(2);
         p.ellipse(p.width/2, wireY, 60, 60);
 
@@ -455,7 +455,7 @@ const sketch2 = (p) => {
         p.stroke(0);
         p.strokeWeight(4);
         if (currentDirection === 1) {
-            // Cross (Into page)
+            // Cross (Into page) - Black on Orange is fine
             p.line(p.width/2 - 15, wireY - 15, p.width/2 + 15, wireY + 15);
             p.line(p.width/2 + 15, wireY - 15, p.width/2 - 15, wireY + 15);
         } else {
@@ -482,7 +482,7 @@ const sketch2 = (p) => {
     function drawHandHint(p, x, y, title, fDir, cDir, mDir) {
         p.push();
         p.translate(x, y);
-        p.fill(50);
+        p.fill(220); // Light Text
         p.noStroke();
         p.textSize(12);
         p.textAlign(p.LEFT);
@@ -512,7 +512,7 @@ const sketch3 = (p) => {
     };
 
     p.draw = () => {
-        p.background(241, 245, 249);
+        p.clear();
         
         // Magnets (Fixed N -> S for simplicity)
         p.noStroke();
@@ -522,7 +522,7 @@ const sketch3 = (p) => {
         p.fill(255); p.text('S', p.width-50, p.height/2);
 
         // Field Lines
-        p.stroke(150);
+        p.stroke(255, 100); // White with opacity
         for(let y=100; y<p.height-100; y+=40) {
             p.line(85, y, p.width-85, y);
             p.line(p.width/2, y, p.width/2+10, y-5); // simple arrow head
@@ -567,7 +567,7 @@ const sketch3 = (p) => {
 
         // Draw Wire
         p.fill('#f59e0b');
-        p.stroke(0);
+        p.stroke(255); // White wire outline
         p.strokeWeight(2);
         p.ellipse(p.width/2, wireY, 60, 60);
 
@@ -577,15 +577,15 @@ const sketch3 = (p) => {
         if (inducedCurrent === 1) { // Into
             p.line(p.width/2 - 15, wireY - 15, p.width/2 + 15, wireY + 15);
             p.line(p.width/2 + 15, wireY - 15, p.width/2 - 15, wireY + 15);
-             p.fill(0); p.noStroke(); p.textSize(14); p.text("INDUCED", p.width/2-30, wireY-40);
+             p.fill(220); p.noStroke(); p.textSize(14); p.text("INDUCED", p.width/2-30, wireY-40);
         } else if (inducedCurrent === -1) { // Out
             p.fill(0);
             p.ellipse(p.width/2, wireY, 15, 15);
-            p.fill(0); p.noStroke(); p.textSize(14); p.text("INDUCED", p.width/2-30, wireY-40);
+            p.fill(220); p.noStroke(); p.textSize(14); p.text("INDUCED", p.width/2-30, wireY-40);
         }
 
         // Instructions
-         p.fill(50);
+         p.fill(200); // Light instructions
          p.noStroke();
          p.textSize(12);
          if (!isDragging) p.text("Grab the wire and move it up/down!", p.width/2 - 60, p.height - 20);

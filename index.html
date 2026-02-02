@@ -19,7 +19,7 @@
             border-radius: 0.5rem;
             overflow: hidden;
             position: relative;
-            background-color: #f3f4f6;
+            /* background-color: #f3f4f6; Removed to allow dark mode background */
         }
         canvas {
             display: block;
@@ -207,51 +207,6 @@
                             Moving a wire through a magnetic field induces a current. 
                             This is used in generators.
                         </p>
-                        <div class="bg-slate-700 p-4 rounded-lg border-l-4 border-amber-500">
-                            <h3 class="font-bold mb-2">Fleming's Right Hand Rule</h3>
-                            <ul class="text-sm space-y-1 text-slate-300 mb-3">
-                                <li>👉 <strong>Motion (Thumb):</strong> Direction of movement</li>
-                                <li>👉 <strong>Field (First Finger):</strong> N to S</li>
-                                <li>👉 <strong>Current (Second Finger):</strong> Induced Current</li>
-                            </ul>
-                            <!-- Isometric Hand View (Right Hand) -->
-                            <div class="bg-slate-800 rounded p-2 flex justify-center">
-                                <svg width="150" height="150" viewBox="0 0 200 200" style="overflow: visible;">
-                                    <defs>
-                                        <marker id="arrowhead-r" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                                            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
-                                        </marker>
-                                    </defs>
-                                    
-                                    <!-- Hand Schematic (Simplified Blocks) -->
-                                    <g transform="translate(100, 120) scale(-1, 1)"> <!-- Flipped X for Right Hand approximation -->
-                                        <!-- Palm -->
-                                        <path d="M-20 -20 L20 -20 L20 20 L-20 20 Z" fill="#e2e8f0" stroke="#475569" stroke-width="2" />
-        
-                                        <!-- Thumb (Motion) - Up -->
-                                        <g class="hover:opacity-80 transition-opacity">
-                                            <rect x="-15" y="-80" width="30" height="60" rx="5" fill="#facc15" stroke="#ca8a04" stroke-width="2" />
-                                            <text x="0" y="-90" text-anchor="middle" fill="#facc15" font-size="14" font-weight="bold" transform="scale(-1, 1)">Motion</text>
-                                            <text x="0" y="-50" text-anchor="middle" fill="#713f12" font-size="10" font-weight="bold" transform="scale(-1, 1)">Thumb</text>
-                                        </g>
-        
-                                        <!-- First Finger (Field) - Right Isometric (So flipped becomes Left) -->
-                                        <g transform="rotate(10)" class="hover:opacity-80 transition-opacity">
-                                            <rect x="20" y="-15" width="80" height="30" rx="5" fill="#f87171" stroke="#b91c1c" stroke-width="2" />
-                                            <text x="110" y="5" text-anchor="middle" fill="#f87171" font-size="14" font-weight="bold" transform="scale(-1, 1) translate(-220, 0)">Field</text>
-                                            <text x="60" y="5" text-anchor="middle" fill="#7f1d1d" font-size="10" font-weight="bold" transform="scale(-1, 1) translate(-120, 0)">First</text>
-                                        </g>
-        
-                                        <!-- Second Finger (Induced Current) - Out/Forward -->
-                                        <g transform="rotate(120) translate(0,0)" class="hover:opacity-80 transition-opacity">
-                                             <rect x="20" y="-15" width="70" height="30" rx="5" fill="#60a5fa" stroke="#1d4ed8" stroke-width="2" />
-                                             <text x="110" y="5" text-anchor="middle" fill="#60a5fa" font-size="14" font-weight="bold" transform="rotate(-120 110 5) scale(-1, 1)">Current</text>
-                                             <text x="55" y="5" text-anchor="middle" fill="#1e3a8a" font-size="10" font-weight="bold" transform="rotate(-180 55 5) scale(-1, 1)">Second</text>
-                                        </g>
-                                    </g>
-                                </svg>
-                            </div>
-                        </div>
                         <p class="text-xs text-slate-400">Drag the wire in the simulation to see the induced current!</p>
                     </div>
                     <div class="md:w-2/3 canvas-container" id="canvas3">
