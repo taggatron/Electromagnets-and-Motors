@@ -1,3 +1,183 @@
+// --- Simulation 0: Magnetic Field (Straight Wire) ---
+const sketch0 = (p) => {
+    let compass = { x: 0, y: 0, dragging: false };
+    let currentUp = true; // true = UP, false = DOWN
+    
+    p.setup = () => {
+        let cnv = p.createCanvas(p.select('#canvas0').width, p.select('#canvas0').height);
+        cnv.style('z-index', '10'); // Ensure on top
+        compass.x = p.width / 2 + 100;
+        compass.y = p.height / 2 + 50;
+        
+        const btn = p.select('#sim0-toggle-current');
+        if (btn) btn.mousePressed(() => {
+            currentUp = !currentUp;
+            // Update SVG visual if possible
+            const svgArrow = document.getElementById('svg-current-arrow');
+            if (svgArrow) {
+                // Flip the arrow marker or rotate 180
+                // Simple textual change or logic
+                if (currentUp) {
+                    svgArrow.setAttribute('y1', '40');
+                    svgArrow.setAttribute('y2', '-40');
+                } else {
+                    svgArrow.setAttribute('y1', '-40');
+                    svgArrow.setAttribute('y2', '40');
+                }
+            }
+        });
+    };
+
+    p.draw = () => {
+        p.clear(); // Transparent background to show SVG
+        
+        let cx = p.width / 2;
+        let cy = p.height / 2;
+
+        // Draw "Glass Plane" visual hint (Horizontal slice)
+        p.push();
+        p.translate(cx, cy);
+        p.noFill();
+        p.stroke(255, 255, 255, 50);
+        p.strokeWeight(1);
+        p.ellipse(0, 0, 300, 150); // Large boundary
+        
+        // Draw Field Lines (Concentric ellipses) representing horizontal circles
+        p.stroke(255, 255, 255, 100);
+        p.strokeWeight(2);
+        
+        [40, 70, 100, 130].forEach(r => {
+            let rx = r;
+            let ry = r * 0.5; // Aspect ratio for isometric/perspective
+            p.ellipse(0, 0, rx*2, ry*2);
+            
+            // Draw Arrows on the ellipses
+            // Current UP -> Field CCW (Front goes Left, Back goes Right)
+            // Let's visualize points: Front(0, ry), Back(0, -ry), Left(-rx, 0), Right(rx, 0)
+            
+            // Front Point (Bottom of ellipse on screen)
+            drawIsoArrow(p, 0, ry, currentUp ? 0 : 180); // 0 deg = Right?? No.
+            // Back Point (Top of ellipse)
+            drawIsoArrow(p, 0, -ry, currentUp ? 180 : 0);
+            
+            // Right Point
+            // Tangent is 'Into Page' or 'Out of Page'. Hard to draw arrow.
+            // Let's just draw arrows on the front/back where they are most visible (Left/Right motion)
+        });
+        p.pop();
+
+        // --- Compass Logic ---
+        handleCompassDrag(p);
+        
+        // Clamp compass to pseudo-3D plane area? 
+        // Just let it float, but calculate needle based on position relative to center
+        
+        p.push();
+        p.translate(compass.x, compass.y);
+        
+        // Compass Body (Perspective Disc)
+        p.fill(255);
+        p.stroke(50);
+        p.strokeWeight(1);
+        p.ellipse(0, 0, 40, 20); // Flattened disc
+        
+        // Needle Calculation
+        let dx = compass.x - cx;
+        let dy = (compass.y - cy) * 2; // Project screen Y back to 3D Z space
+        let angle3D = p.atan2(dy, dx);
+        
+        // Tangent in 3D:
+        // Current UP -> Field CCW. 
+        // Tangent Angle = angle3D + 90 deg (CCW) or -90 (CW)
+        let tangAngle3D = angle3D + (currentUp ? -p.HALF_PI : p.HALF_PI); 
+        // Wait, standard math: CCW from X axis. Tangent is +90.
+        // If Current UP => Thumb Up => Fingers CCW. 
+        // So Tangent = +HALF_PI.
+        // Let's check: Front (Pos Y/Z). Angle PI/2. Tangent PI. (Left). Correct.
+        
+        // Vector 3D
+        let vx = p.cos(tangAngle3D);
+        let vz = p.sin(tangAngle3D);
+        
+        // Project Vector back to Screen
+        // Screen Vx = Vx
+        // Screen Vy = Vz * 0.5
+        let svx = vx * 20; // Length 20
+        let svy = vz * 10; 
+        
+        p.strokeWeight(3);
+        // North Pole (Red)
+        p.stroke(239, 68, 68);
+        p.line(0, 0, svx, svy);
+        
+        // South Pole (Blue)
+        p.stroke(59, 130, 246);
+        p.line(0, 0, -svx, -svy);
+        
+        // Center pin
+        p.noStroke();
+        p.fill(50);
+        p.ellipse(0,0,4,2);
+        
+        p.pop();
+    };
+    
+    function drawIsoArrow(p, x, y, angleDeg) {
+        // Simple arrow head pointing in direction
+        // angleDeg 0 = Right, 180 = Left
+        p.push();
+        p.translate(x, y);
+        // If angle is 0 (Right), logic:
+        // Current UP -> Front Point (y>0) -> Moves LEFT.
+        // So at (0, ry), arrow should point LEFT.
+        // My logic above passed 0... let's fix in loop.
+        
+        // Correct Logic:
+        // Front (y>0): Field Left.
+        // Back (y<0): Field Right.
+        
+        if (y > 0) { // Front
+            // Arrow points Left (-X) if Current UP
+            drawArrowHead(p, currentUp ? 180 : 0);
+        } else { // Back
+            // Arrow points Right (+X) if Current UP
+            drawArrowHead(p, currentUp ? 0 : 180);
+        }
+        p.pop();
+    }
+    
+    function drawArrowHead(p, rotationDeg) {
+        p.rotate(p.radians(rotationDeg));
+        p.noFill();
+        p.stroke(255, 255, 0); // Yellow
+        p.strokeWeight(2);
+        p.beginShape();
+        p.vertex(-5, -5);
+        p.vertex(5, 0);
+        p.vertex(-5, 5);
+        p.endShape();
+    }
+
+    function handleCompassDrag(p) {
+        let d = p.dist(p.mouseX, p.mouseY, compass.x, compass.y);
+        if (p.mouseIsPressed) {
+            if (d < 30 && !compass.dragging) {
+                compass.dragging = true;
+            }
+        } else {
+            compass.dragging = false;
+        }
+        
+        if (compass.dragging) {
+            compass.x = p.mouseX;
+            compass.y = p.mouseY;
+            compass.x = p.constrain(compass.x, 20, p.width-20);
+            compass.y = p.constrain(compass.y, 20, p.height-20);
+        }
+    }
+};
+new p5(sketch0, 'canvas0');
+
 // --- Simulation 1: Electromagnet ---
 const sketch1 = (p) => {
     let currentSlider, turnsSlider, coreToggle;
