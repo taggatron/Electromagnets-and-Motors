@@ -305,7 +305,8 @@ const sketch1 = (p) => {
             
             for (let i = 0; i < numArrows; i++) {
                 let offset = i / numArrows;
-                let arrowPos = ((p.frameCount % 60) / 60 + offset) % 1;
+                // Slower animation (120 frames = ~2 seconds per loop)
+                let arrowPos = ((p.frameCount % 120) / 120 + offset) % 1;
                 
                 // Left Wire Arrow (Going Up/In)
                 let x1 = p.lerp(0, p.width/2 - 90, arrowPos);
