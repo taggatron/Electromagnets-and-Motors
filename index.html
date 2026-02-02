@@ -60,9 +60,15 @@
                         <div class="bg-slate-700 p-4 rounded-lg border-l-4 border-violet-500">
                             <h3 class="font-bold mb-2">Right Hand Grip Rule</h3>
                             <p class="text-sm text-slate-300 mb-2">Imagine gripping the wire with your right hand.</p>
-                            <ul class="text-sm space-y-1 text-slate-300 mb-3">
-                                <li>👉 <strong>Thumb:</strong> Direction of Current</li>
-                                <li>✊ <strong>Fingers curled:</strong> Direction of Field</li>
+                            <ul class="text-sm space-y-2 text-slate-300 mb-3">
+                                <li class="flex items-center gap-2">
+                                    <span id="grip-thumb-icon" class="text-2xl inline-block transition-transform duration-300">👍</span>
+                                    <span><strong>Thumb:</strong> Direction of Current</span>
+                                </li>
+                                <li class="flex items-center gap-2">
+                                    <span class="text-xl">✊</span>
+                                    <span><strong>Fingers curled:</strong> Direction of Field</span>
+                                </li>
                             </ul>
                         </div>
                         <p class="text-xs text-slate-400">Drag the compass to see how the field aligns!</p>
@@ -79,16 +85,6 @@
                             <g transform="translate(200, 150)">
                                 <!-- Wire (Vertical) -->
                                 <line x1="0" y1="-140" x2="0" y2="140" stroke="#f59e0b" stroke-width="12" stroke-linecap="round"/>
-                                
-                                <!-- Current Arrow -->
-                                <line x1="0" y1="40" x2="0" y2="-40" stroke="#fff" stroke-width="3" marker-end="url(#arrowhead-med)" id="svg-current-arrow"/>
-                                <text x="15" y="-50" fill="#fff" font-size="16" font-weight="bold">I</text>
-
-                                <!-- Hand (Grip Rule Visual) - Faded behind -->
-                                <g opacity="0.4">
-                                    <path d="M-40 -30 Q -60 -10 -40 20 L 40 20 Q 60 -10 40 -30 Z" fill="#94a3b8" stroke="#475569" stroke-width="2"/> 
-                                    <rect x="5" y="-80" width="20" height="60" rx="8" fill="#94a3b8" stroke="#475569" stroke-width="2" transform="rotate(-5)"/>
-                                </g>
                             </g>
                         </svg>
                         

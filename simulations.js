@@ -12,17 +12,15 @@ const sketch0 = (p) => {
         const btn = p.select('#sim0-toggle-current');
         if (btn) btn.mousePressed(() => {
             currentUp = !currentUp;
-            // Update SVG visual if possible
-            const svgArrow = document.getElementById('svg-current-arrow');
-            if (svgArrow) {
-                // Flip the arrow marker or rotate 180
-                // Simple textual change or logic
+            
+            // Update HTML Thumb Icon
+            const thumbIcon = p.select('#grip-thumb-icon');
+            if (thumbIcon) {
+                // To keep it "Right Hand" (Thumb on Left), we flip vertically for Down
                 if (currentUp) {
-                    svgArrow.setAttribute('y1', '40');
-                    svgArrow.setAttribute('y2', '-40');
+                    thumbIcon.style('transform', 'scaleY(1)');
                 } else {
-                    svgArrow.setAttribute('y1', '-40');
-                    svgArrow.setAttribute('y2', '40');
+                    thumbIcon.style('transform', 'scaleY(-1)');
                 }
             }
         });
@@ -33,6 +31,9 @@ const sketch0 = (p) => {
         
         let cx = p.width / 2;
         let cy = p.height / 2;
+
+        // Draw Animated Current Arrows on Wire
+        drawCurrentFlow(p, cx, cy);
 
         // Draw "Glass Plane" visual hint (Horizontal slice)
         p.push();
@@ -173,6 +174,45 @@ const sketch0 = (p) => {
             compass.y = p.mouseY;
             compass.x = p.constrain(compass.x, 20, p.width-20);
             compass.y = p.constrain(compass.y, 20, p.height-20);
+        }
+    }
+
+    function drawCurrentFlow(p, cx, cy) {
+        // Wire is roughly x=cx, from cy-140 to cy+140 (SVG coords)
+        // Draw moving arrows
+        p.stroke(255);
+        p.strokeWeight(2);
+        p.noFill();
+        
+        // Speed and phase
+        const speed = 1.5;
+        const spacing = 60;
+        let offset = (p.frameCount * speed) % spacing;
+        
+        let topY = cy - 130;
+        let bottomY = cy + 130;
+        
+        for (let y = topY; y <= bottomY; y += spacing) {
+            let drawY = y + (currentUp ? -offset : offset);
+            // Wrap around logic
+            if (currentUp) {
+                if (drawY < topY) drawY += (bottomY - topY);
+            } else {
+                if (drawY > bottomY) drawY -= (bottomY - topY);
+            }
+            
+            // Draw Chevron Arrow on top of wire
+            p.push();
+            p.translate(cx, drawY);
+            if (!currentUp) p.rotate(p.PI); // Point down
+            
+            // Chevron shape
+            p.beginShape();
+            p.vertex(-5, 5);
+            p.vertex(0, -5); // Tip
+            p.vertex(5, 5);
+            p.endShape();
+            p.pop();
         }
     }
 };
