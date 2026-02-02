@@ -16,11 +16,14 @@ const sketch0 = (p) => {
             // Update HTML Thumb Icon
             const thumbIcon = p.select('#grip-thumb-icon');
             if (thumbIcon) {
-                // To keep it "Right Hand" (Thumb on Left), we flip vertically for Down
+                // Initial state (UP) was scaleX(-1) -> mirror image
+                // User wants:
+                // UP: scale(-1, 1)  (Maintains the initial mirror)
+                // DOWN: scale(1, -1) (Removes horizontal mirror, flips vertical)
                 if (currentUp) {
-                    thumbIcon.style('transform', 'scaleY(1)');
+                    thumbIcon.style('transform', 'scale(-1, 1)');
                 } else {
-                    thumbIcon.style('transform', 'scaleY(-1)');
+                    thumbIcon.style('transform', 'scale(1, -1)');
                 }
             }
         });
@@ -53,17 +56,18 @@ const sketch0 = (p) => {
             p.ellipse(0, 0, rx*2, ry*2);
             
             // Draw Arrows on the ellipses
-            // Current UP -> Field CCW (Front goes Left, Back goes Right)
-            // Let's visualize points: Front(0, ry), Back(0, -ry), Left(-rx, 0), Right(rx, 0)
+            // User requested to move arrows to the vertical midpoint (y=0, x=rx and x=-rx)
+            // User requested to change current directions (Invert logic)
             
-            // Front Point (Bottom of ellipse on screen)
-            drawIsoArrow(p, 0, ry, currentUp ? 0 : 180); // 0 deg = Right?? No.
-            // Back Point (Top of ellipse)
-            drawIsoArrow(p, 0, -ry, currentUp ? 180 : 0);
+            // Right Point (x = rx, y = 0)
+            // Standard Physics: Current Up -> Field Into Page (Up/-90).
+            // User Request (Change Dir): Down (+90)
+            drawIsoArrow(p, rx, 0, currentUp ? -90 : 90);
             
-            // Right Point
-            // Tangent is 'Into Page' or 'Out of Page'. Hard to draw arrow.
-            // Let's just draw arrows on the front/back where they are most visible (Left/Right motion)
+            // Left Point (x = -rx, y = 0)
+            // Standard Physics: Current Up -> Field Out of Page (Down/+90).
+            // User Request (Change Dir): Up (-90)
+            drawIsoArrow(p, -rx, 0, currentUp ? 90 : -90);
         });
         p.pop();
 
@@ -125,25 +129,9 @@ const sketch0 = (p) => {
     
     function drawIsoArrow(p, x, y, angleDeg) {
         // Simple arrow head pointing in direction
-        // angleDeg 0 = Right, 180 = Left
         p.push();
         p.translate(x, y);
-        // If angle is 0 (Right), logic:
-        // Current UP -> Front Point (y>0) -> Moves LEFT.
-        // So at (0, ry), arrow should point LEFT.
-        // My logic above passed 0... let's fix in loop.
-        
-        // Correct Logic:
-        // Front (y>0): Field Left.
-        // Back (y<0): Field Right.
-        
-        if (y > 0) { // Front
-            // Arrow points Left (-X) if Current UP
-            drawArrowHead(p, currentUp ? 180 : 0);
-        } else { // Back
-            // Arrow points Right (+X) if Current UP
-            drawArrowHead(p, currentUp ? 0 : 180);
-        }
+        drawArrowHead(p, angleDeg);
         p.pop();
     }
     
