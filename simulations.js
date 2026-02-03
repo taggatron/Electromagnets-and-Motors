@@ -389,6 +389,286 @@ const sketchMagnet = (p) => {
 };
 new p5(sketchMagnet, 'canvas-magnet');
 
+// --- Simulation 1b: Bar Magnet with Compass ---
+const sketchMagnetCompass = (p) => {
+    const magnetWidth = 120;
+    const magnetHeight = 40;
+    let compasses = [];
+    let showFieldLines = false;
+
+    // Class for Compass
+    class Compass {
+        constructor(x, y) {
+            this.x = x;
+            this.y = y;
+            this.angle = 0;
+            this.dragging = false;
+        }
+
+        update() {
+            if (this.dragging) {
+                this.x = p.mouseX;
+                this.y = p.mouseY;
+                // Keep within bounds
+                this.x = p.constrain(this.x, 20, p.width - 20);
+                this.y = p.constrain(this.y, 20, p.height - 20);
+            }
+
+            // Calculate Field Angle
+            let B = calculateField(this.x, this.y);
+            this.angle = Math.atan2(B.y, B.x);
+        }
+
+        checkPressed() {
+            // Hit test for ellipse (approximate as circle for interaction)
+            if (p.dist(p.mouseX, p.mouseY, this.x, this.y) < 25) {
+                this.dragging = true;
+            }
+        }
+
+        display() {
+            p.push();
+            p.translate(this.x, this.y);
+
+            // Draw Cylinder Body (Depth)
+            p.stroke(80); // Darker stroke for body
+            p.strokeWeight(1);
+            p.fill(180); // Silver/Grey body side
+            
+            // Draw lower rim (bottom curve)
+            // Top face is at y=0. Bottom of body is at y=8 (depth).
+            const depth = 8;
+            const w = 40;
+            const h = 20; // Height of the ellipse face
+            
+            // We draw the side shell first
+            p.beginShape();
+            // Start at left tangent of top face
+            p.vertex(-w/2, 0); 
+            // Line down to bottom
+            p.vertex(-w/2, depth);
+            // Bottom curve (half ellipse)
+            // Bezier approximation for bottom arc from -20 to 20
+            p.bezierVertex(-w/2, depth + h/2, w/2, depth + h/2, w/2, depth);
+            // Line up to right tangent
+            p.vertex(w/2, 0);
+            p.endShape(p.CLOSE);
+
+            // Top Face (Dial)
+            p.fill(250); // White face
+            p.stroke(100);
+            p.ellipse(0, 0, w, h);
+
+            // Draw Needle (Perspective Corrected)
+            // Screen coords mappings:
+            // x = R * cos(angle)
+            // y = (R * sin(angle)) * 0.5 (squash factor matching ellipse ratio)
+            
+            let nx = p.cos(this.angle) * 15;
+            let ny = p.sin(this.angle) * 15 * 0.5; 
+
+            p.strokeWeight(3);
+            p.stroke(239, 68, 68); // Red (North)
+            p.line(0, 0, nx, ny);
+
+            p.stroke(59, 130, 246); // Blue (South)
+            p.line(0, 0, -nx, -ny);
+
+            // Center Pin
+            p.noStroke();
+            p.fill(50);
+            p.ellipse(0, 0, 4, 3);
+
+            p.pop();
+        }
+    }
+
+    // Reuse Field Calculation Logic
+    function calculateField(x, y) {
+        const cx = p.width / 2;
+        const cy = p.height / 2;
+        const poleDist = magnetWidth * 0.4;
+        const northX = cx - poleDist;
+        const southX = cx + poleDist;
+
+        const rNx = x - northX;
+        const rNy = y - cy;
+        const distN = Math.hypot(rNx, rNy) || 1;
+        
+        const rSx = x - southX;
+        const rSy = y - cy;
+        const distS = Math.hypot(rSx, rSy) || 1;
+
+        const Bnx = rNx / Math.pow(distN, 3);
+        const Bny = rNy / Math.pow(distN, 3);
+        const Bsx = -rSx / Math.pow(distS, 3);
+        const Bsy = -rSy / Math.pow(distS, 3);
+
+        return { x: Bnx + Bsx, y: Bny + Bsy };
+    }
+
+    function drawFieldLines() {
+        p.noFill();
+        p.stroke(255, 255, 255, 60); // Faint lines
+        p.strokeWeight(2);
+
+        const cx = p.width / 2;
+        const cy = p.height / 2;
+        const poleDist = magnetWidth * 0.4;
+        const northX = cx - poleDist;
+        const southX = cx + poleDist;
+        const stepSize = 10;
+        
+        let seeds = [];
+        
+        // North Pole
+        for(let a = -p.PI/2; a <= p.PI/2; a+=0.4) {
+           seeds.push({x: northX - 10, y: cy + p.sin(a)*10, dir: 1});
+        }
+        // Top/Bottom
+        for(let x = -magnetWidth/2; x <= magnetWidth/2; x+=25) {
+             seeds.push({x: cx + x, y: cy - magnetHeight/2 - 5, dir: 1});
+             seeds.push({x: cx + x, y: cy + magnetHeight/2 + 5, dir: 1});
+        }
+        // South Pole
+        for(let a = -p.PI/2; a <= p.PI/2; a+=0.4) {
+            seeds.push({x: southX + 10, y: cy + p.sin(a)*10, dir: -1});
+        }
+
+        seeds.forEach(seed => {
+            let currX = seed.x;
+            let currY = seed.y;
+            let distAcc = 0;
+            
+            p.beginShape();
+            p.vertex(currX, currY);
+            
+            for(let i=0; i<400; i++) { 
+                let B = calculateField(currX, currY);
+                let mag = Math.hypot(B.x, B.y);
+                if (mag === 0) break;
+                
+                let dx = (B.x / mag) * stepSize * seed.dir;
+                let dy = (B.y / mag) * stepSize * seed.dir;
+                
+                distAcc += stepSize;
+                if (distAcc > 50) {
+                    p.endShape();
+                    
+                    p.push();
+                    p.translate(currX, currY);
+                    let arrowAngle = Math.atan2(B.y, B.x);
+                    p.rotate(arrowAngle);
+                    p.stroke(255, 255, 255, 60);
+                    p.triangle(0, 0, -5, -3, -5, 3); // Simple triangle arrow
+                    p.pop();
+                    
+                    distAcc = 0;
+                    p.beginShape();
+                    p.vertex(currX+dx, currY+dy);
+                }
+
+                currX += dx;
+                currY += dy;
+
+                if (currX < 0 || currX > p.width || currY < 0 || currY > p.height) {
+                    p.vertex(currX, currY);
+                    break;
+                }
+                if (Math.abs(currX - cx) < magnetWidth/2 && Math.abs(currY - cy) < magnetHeight/2) {
+                    break;
+                }
+                p.vertex(currX, currY);
+            }
+            p.endShape();
+        });
+    }
+
+    p.setup = () => {
+        let parent = p.select('#canvas-magnet-compass');
+        let w = parent ? parent.width : 400;
+        let h = parent ? parent.height : 300;
+        p.createCanvas(w, h);
+
+        // Initial compass
+        compasses.push(new Compass(w/2, h/2 - 80));
+
+        // Buttons
+        let addBtn = p.select('#sim-compass-add');
+        if (addBtn) addBtn.mousePressed(() => {
+            compasses.push(new Compass(p.width/2 + p.random(-50, 50), p.height/2 + p.random(-50, 50)));
+        });
+
+        let toggleBtn = p.select('#sim-compass-toggle-lines');
+        if (toggleBtn) toggleBtn.mousePressed(() => {
+            showFieldLines = !showFieldLines;
+            toggleBtn.html(showFieldLines ? "Hide Field Lines" : "Reveal Field Lines");
+        });
+        
+        let clearBtn = p.select('#sim-compass-clear');
+        if (clearBtn) clearBtn.mousePressed(() => {
+            compasses = [];
+        });
+
+        window.addEventListener('resize', () => {
+            if (parent) {
+                p.resizeCanvas(parent.width, parent.height);
+            }
+        });
+    };
+
+    p.draw = () => {
+        p.clear();
+        
+        const cx = p.width / 2;
+        const cy = p.height / 2;
+
+        if (showFieldLines) {
+            drawFieldLines();
+        }
+
+        // Draw Magnet
+        p.push();
+        p.translate(cx, cy);
+        p.noStroke();
+        // South Pole (Blue) - Right
+        p.fill(59, 130, 246); 
+        p.rect(0, -magnetHeight/2, magnetWidth/2, magnetHeight);
+        // North Pole (Red) - Left
+        p.fill(239, 68, 68); 
+        p.rect(-magnetWidth/2, -magnetHeight/2, magnetWidth/2, magnetHeight);
+        // Labels
+        p.fill(255);
+        p.textAlign(p.CENTER, p.CENTER);
+        p.textSize(20);
+        p.textStyle(p.BOLD);
+        p.text("N", -magnetWidth/4, 0);
+        p.text("S", magnetWidth/4, 0);
+        p.pop();
+
+        // Update and Draw Compasses
+        for (let c of compasses) {
+            c.update();
+            c.display();
+        }
+    };
+
+    p.mousePressed = () => {
+        // Drag logic (reverse order to pick top-most first)
+        for (let i = compasses.length - 1; i >= 0; i--) {
+            compasses[i].checkPressed();
+            if (compasses[i].dragging) break;
+        }
+    };
+
+    p.mouseReleased = () => {
+        for (let c of compasses) {
+            c.dragging = false;
+        }
+    };
+};
+new p5(sketchMagnetCompass, 'canvas-magnet-compass');
+
 // --- Simulation 0: Magnetic Field (Straight Wire) ---
 const sketch0 = (p) => {
     let compass = { x: 0, y: 0, dragging: false };
