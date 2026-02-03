@@ -1,3 +1,202 @@
+// --- Simulation Magnet: Bar Magnet & Filings ---
+const sketchMagnet = (p) => {
+    let filings = [];
+    const magnetWidth = 120;
+    const magnetHeight = 40;
+    
+    // Virtual Shaker State
+    let shaker = {
+        x: 50,
+        y: 50,
+        width: 40,
+        height: 60,
+        dragging: false,
+        tilt: 0
+    };
+
+    p.setup = () => {
+        let parent = p.select('#canvas-magnet');
+        // Ensure parent exists before size calculation
+        let w = parent ? parent.width : 400;
+        let h = parent ? parent.height : 300;
+        let cnv = p.createCanvas(w, h);
+        
+        // Handle Resize
+        window.addEventListener('resize', () => {
+             if (parent) {
+                p.resizeCanvas(parent.width, parent.height);
+             }
+        });
+
+        // Set initial shaker pos
+        shaker.x = w - 80;
+        shaker.y = 80;
+
+        // Clear btn
+        const btn = p.select('#sim-magnet-clear');
+        if (btn) btn.mousePressed(() => {
+            filings = [];
+        });
+    };
+
+    p.draw = () => {
+        p.clear(); // Transparent background
+
+        // Magnet Center
+        const cx = p.width / 2;
+        const cy = p.height / 2;
+
+        // 1. Draw Magnet
+        p.push();
+        p.translate(cx, cy);
+        p.noStroke();
+        // South Pole (Blue) - Right
+        p.fill(59, 130, 246); // slate-500 ish / blue
+        p.rect(0, -magnetHeight/2, magnetWidth/2, magnetHeight);
+        
+        // North Pole (Red) - Left
+        p.fill(239, 68, 68); // red-500
+        p.rect(-magnetWidth/2, -magnetHeight/2, magnetWidth/2, magnetHeight);
+        
+        // Labels
+        p.fill(255);
+        p.textAlign(p.CENTER, p.CENTER);
+        p.textSize(20);
+        p.textStyle(p.BOLD);
+        p.text("N", -magnetWidth/4, 0);
+        p.text("S", magnetWidth/4, 0);
+        p.pop();
+
+        // 2. Draw Filings
+        p.stroke(200);
+        p.strokeWeight(1.5);
+        for (let f of filings) {
+            p.push();
+            p.translate(f.x, f.y);
+            p.rotate(f.angle);
+            p.line(-3, 0, 3, 0); // Small filing line
+            p.pop();
+            
+            // "Fall" or settle logic (optional, keep simple for now)
+            // Just static placement for clean lines
+        }
+
+        // 3. Draw Shaker (if not dragging, reset tilt)
+        if (!shaker.dragging) {
+            shaker.tilt = p.lerp(shaker.tilt, 0, 0.2);
+        }
+        
+        drawShaker();
+
+        // 4. Sprinkle logic
+        if (shaker.dragging) {
+            // Drag logic
+            shaker.x = p.mouseX;
+            shaker.y = p.mouseY;
+            shaker.tilt = (p.mouseX - p.pmouseX) * 0.1; // Lean into movement
+            
+            // Spawn filings
+            if (p.frameCount % 2 === 0) { // Rate limiter
+                for(let i=0; i<3; i++) {
+                    spawnFiling(shaker.x + p.random(-15, 15), shaker.y + 30);
+                }
+            }
+        }
+    };
+
+    function drawShaker() {
+        p.push();
+        p.translate(shaker.x, shaker.y);
+        p.rotate(shaker.tilt);
+        
+        // Shaker Body
+        p.fill(200); // Silver/Metal
+        p.stroke(100);
+        p.strokeWeight(2);
+        // Cylinder shape approx
+        p.rect(-15, -30, 30, 60, 5);
+        
+        // Cap
+        p.fill(50); // Dark cap
+        p.rect(-16, 20, 32, 10, 2);
+        
+        // Label
+        p.noStroke();
+        p.fill(100);
+        p.textAlign(p.CENTER);
+        p.textSize(20);
+        p.text("Fe", 0, 5);
+        
+        p.pop();
+    }
+
+    function spawnFiling(x, y) {
+        // Prevent drawing INSIDE magnet
+        const cx = p.width / 2;
+        const cy = p.height / 2;
+        if (x > cx - magnetWidth/2 - 5 && x < cx + magnetWidth/2 + 5 && 
+            y > cy - magnetHeight/2 - 5 && y < cy + magnetHeight/2 + 5) {
+            return;
+        }
+
+        // Calc Angle based on Dipole Field
+        // North (-x), South (+x) relative to center
+        // Let's assume standard physics: Field lines leave North, enter South.
+        // My draw code: N is Left (negative x), S is Right (positive x).
+        // Pole locations (approximate monopole locations)
+        const poleDist = magnetWidth * 0.4; // Slightly inside the ends
+        const northX = cx - poleDist;
+        const southX = cx + poleDist;
+        
+        // Vector from North Pole to point
+        const rNx = x - northX;
+        const rNy = y - cy;
+        const distN = Math.hypot(rNx, rNy);
+        
+        // Vector from South Pole to point
+        const rSx = x - southX;
+        const rSy = y - cy;
+        const distS = Math.hypot(rSx, rSy);
+
+        // Field from North (Repulsive "Mono-charge" +q)
+        // B ~ r_hat / r^2
+        const Bnx = rNx / Math.pow(distN, 3);
+        const Bny = rNy / Math.pow(distN, 3);
+
+        // Field from South (Attracive "Mono-charge" -q)
+        // B ~ - r_hat / r^2
+        const Bsx = -rSx / Math.pow(distS, 3);
+        const Bsy = -rSy / Math.pow(distS, 3);
+
+        // Net Field
+        const Bx = Bnx + Bsx;
+        const By = Bny + Bsy;
+
+        const angle = Math.atan2(By, Bx);
+
+        filings.push({
+            x: x,
+            y: y,
+            angle: angle
+        });
+        
+        // Limit count for performance
+        if (filings.length > 1500) filings.shift();
+    }
+
+    p.mousePressed = () => {
+        // Check if clicking shaker
+        if (p.dist(p.mouseX, p.mouseY, shaker.x, shaker.y) < 40) {
+            shaker.dragging = true;
+        }
+    };
+
+    p.mouseReleased = () => {
+        shaker.dragging = false;
+    };
+};
+new p5(sketchMagnet, 'canvas-magnet');
+
 // --- Simulation 0: Magnetic Field (Straight Wire) ---
 const sketch0 = (p) => {
     let compass = { x: 0, y: 0, dragging: false };

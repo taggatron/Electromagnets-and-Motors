@@ -76,11 +76,45 @@
         <!-- LEARNING MODE -->
         <div id="learning-mode" class="space-y-8">
             
-            <!-- Section 1: Electric and Magnetic Fields -->
+            <!-- Section 1: Bar Magnet -->
             <section class="bg-slate-800 p-6 rounded-xl shadow-xl">
                 <div class="flex flex-col md:flex-row gap-6">
                     <div class="md:w-1/3 space-y-4">
-                        <h2 class="text-2xl font-bold text-violet-400">1. Magnetic Field around a Wire</h2>
+                        <h2 class="text-2xl font-bold text-red-500">1. Magnetic Field of a Bar Magnet</h2>
+                        <p class="text-slate-300">
+                            A bar magnet has a North and South pole. Magnetic field lines travel from North to South.
+                        </p>
+                        <div class="bg-slate-700 p-4 rounded-lg border-l-4 border-red-500">
+                            <h3 class="font-bold mb-2">Visualizing Field Lines</h3>
+                            <p class="text-sm text-slate-300 mb-2">
+                                Iron filings can align themselves with the magnetic field, revealing the invisible pattern.
+                            </p>
+                            <ul class="text-sm space-y-2 text-slate-300 mb-3">
+                                <li class="flex items-center gap-2">
+                                    <span>🧂</span>
+                                    <span><strong>Shaker:</strong> Drag to sprinkle filings</span>
+                                </li>
+                                <li class="flex items-center gap-2">
+                                    <span>🧲</span>
+                                    <span><strong>Magnet:</strong> Observe the N-S pattern</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <p class="text-xs text-slate-400">Drag the shaker over the canvas to drop filings!</p>
+                        <button id="sim-magnet-clear" class="w-full mt-2 bg-red-600 hover:bg-red-500 py-2 rounded text-sm font-bold transition">Clear Filings</button>
+                    </div>
+                    <div class="md:w-2/3 canvas-container relative flex justify-center items-center bg-slate-800" id="canvas-magnet-container">
+                        <!-- P5 Canvas Target -->
+                        <div id="canvas-magnet" class="absolute inset-0 w-full h-full z-10"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Section 2: Electric and Magnetic Fields -->
+            <section class="bg-slate-800 p-6 rounded-xl shadow-xl">
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="md:w-1/3 space-y-4">
+                        <h2 class="text-2xl font-bold text-violet-400">2. Magnetic Field around a Wire</h2>
                         <p class="text-slate-300">
                             When current flows through a straight wire, it creates a circular magnetic field around it.
                         </p>
@@ -121,11 +155,11 @@
                 </div>
             </section>
 
-            <!-- Section 2: Electromagnets -->
+            <!-- Section 3: Electromagnets -->
             <section class="bg-slate-800 p-6 rounded-xl shadow-xl">
                 <div class="flex flex-col md:flex-row gap-6">
                     <div class="md:w-1/3 space-y-4">
-                        <h2 class="text-2xl font-bold text-indigo-400">2. Electromagnets</h2>
+                        <h2 class="text-2xl font-bold text-indigo-400">3. Electromagnets</h2>
                         <p class="text-slate-300">
                             An electromagnet consists of a coil of wire wrapped around a soft iron core. 
                             When current flows through the wire, a magnetic field is created.
@@ -154,11 +188,11 @@
                 </div>
             </section>
 
-            <!-- Section 3: Motor Effect (Left Hand Rule) -->
+            <!-- Section 4: Motor Effect (Left Hand Rule) -->
             <section class="bg-slate-800 p-6 rounded-xl shadow-xl">
                 <div class="flex flex-col md:flex-row gap-6">
                     <div class="md:w-1/3 space-y-4">
-                        <h2 class="text-2xl font-bold text-emerald-400">3. The Motor Effect</h2>
+                        <h2 class="text-2xl font-bold text-emerald-400">4. The Motor Effect</h2>
                         <p class="text-slate-300">
                             When a current-carrying wire is placed in a magnetic field, it experiences a force. 
                             This is the principle behind electric motors.
@@ -225,11 +259,11 @@
                 </div>
             </section>
 
-            <!-- Section 4: Generator Effect (Right Hand Rule) -->
+            <!-- Section 5: Generator Effect (Right Hand Rule) -->
             <section class="bg-slate-800 p-6 rounded-xl shadow-xl">
                 <div class="flex flex-col md:flex-row gap-6">
                     <div class="md:w-1/3 space-y-4">
-                        <h2 class="text-2xl font-bold text-amber-400">4. Generator Effect</h2>
+                        <h2 class="text-2xl font-bold text-amber-400">5. Generator Effect</h2>
                         <p class="text-slate-300">
                             Moving a wire through a magnetic field induces a current. 
                             This is used in generators.
