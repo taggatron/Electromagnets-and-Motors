@@ -4,6 +4,11 @@ const sketchMagnet = (p) => {
     const magnetWidth = 120;
     const magnetHeight = 40;
     
+    // Grid for uncovering field lines ("scratch card" effect)
+    // We use a Set to store strings "gridX,gridY" of revealed areas
+    let revealedGrid = new Set();
+    const GRID_SIZE = 20;
+
     // Virtual Shaker State
     let shaker = {
         x: 50,
@@ -36,6 +41,7 @@ const sketchMagnet = (p) => {
         const btn = p.select('#sim-magnet-clear');
         if (btn) btn.mousePressed(() => {
             filings = [];
+            revealedGrid.clear();
         });
     };
 
@@ -46,7 +52,11 @@ const sketchMagnet = (p) => {
         const cx = p.width / 2;
         const cy = p.height / 2;
 
-        // 1. Draw Magnet
+        // 1. Draw Field Lines (Revealed by filings)
+        // We always try to draw them, but the function handles the "scratch card" mask
+        drawFieldLines();
+
+        // 2. Draw Magnet
         p.push();
         p.translate(cx, cy);
         p.noStroke();
@@ -67,7 +77,7 @@ const sketchMagnet = (p) => {
         p.text("S", magnetWidth/4, 0);
         p.pop();
 
-        // 2. Draw Filings
+        // 3. Draw Filings
         p.stroke(200);
         p.strokeWeight(1.5);
         for (let f of filings) {
@@ -76,19 +86,16 @@ const sketchMagnet = (p) => {
             p.rotate(f.angle);
             p.line(-3, 0, 3, 0); // Small filing line
             p.pop();
-            
-            // "Fall" or settle logic (optional, keep simple for now)
-            // Just static placement for clean lines
         }
 
-        // 3. Draw Shaker (if not dragging, reset tilt)
+        // 4. Draw Shaker (if not dragging, reset tilt)
         if (!shaker.dragging) {
             shaker.tilt = p.lerp(shaker.tilt, 0, 0.2);
         }
         
         drawShaker();
 
-        // 4. Sprinkle logic
+        // 5. Sprinkle logic
         if (shaker.dragging) {
             // Drag logic
             shaker.x = p.mouseX;
@@ -103,6 +110,134 @@ const sketchMagnet = (p) => {
             }
         }
     };
+
+    function calculateField(x, y) {
+        const cx = p.width / 2;
+        const cy = p.height / 2;
+        const poleDist = magnetWidth * 0.4;
+        const northX = cx - poleDist;
+        const southX = cx + poleDist;
+
+        // North Pole (Source)
+        const rNx = x - northX;
+        const rNy = y - cy;
+        const distN = Math.hypot(rNx, rNy) || 1;
+        
+        // South Pole (Sink)
+        const rSx = x - southX;
+        const rSy = y - cy;
+        const distS = Math.hypot(rSx, rSy) || 1;
+
+        // Field Sum (1/r^2 magnitude, direction r_hat) -> vector / r^3
+        const Bnx = rNx / Math.pow(distN, 3);
+        const Bny = rNy / Math.pow(distN, 3);
+        const Bsx = -rSx / Math.pow(distS, 3);
+        const Bsy = -rSy / Math.pow(distS, 3);
+
+        return { x: Bnx + Bsx, y: Bny + Bsy };
+    }
+
+    // Helper to check if a point is "revealed" by a filing
+    function isRevealed(x, y) {
+        let gx = Math.floor(x / GRID_SIZE);
+        let gy = Math.floor(y / GRID_SIZE);
+        // Check surrounding cells too for smoothness
+        for(let i=-1; i<=1; i++){
+            for(let j=-1; j<=1; j++){
+                if(revealedGrid.has(`${gx+i},${gy+j}`)) return true;
+            }
+        }
+        return false;
+    }
+
+    function drawFieldLines() {
+        p.noFill();
+        p.stroke(255, 255, 255, 60); // Constant low alpha
+        p.strokeWeight(2);
+
+        const cx = p.width / 2;
+        const cy = p.height / 2;
+        const poleDist = magnetWidth * 0.4;
+        const northX = cx - poleDist;
+        const southX = cx + poleDist;
+        const stepSize = 10;
+        
+        // Seed Points
+        let seeds = [];
+        
+        // 1. From North Pole (Integrating Forward)
+        for(let a = -p.PI/2; a <= p.PI/2; a+=0.3) {
+           seeds.push({x: northX - 10, y: cy + p.sin(a)*10, dir: 1});
+        }
+        // Top/Bottom lines (start near center to cover both sides better)
+        for(let x = -magnetWidth/2; x <= magnetWidth/2; x+=15) {
+             seeds.push({x: cx + x, y: cy - magnetHeight/2 - 5, dir: 1}); // Top
+             seeds.push({x: cx + x, y: cy + magnetHeight/2 + 5, dir: 1}); // Bottom
+        }
+        // 2. From South Pole (Integrating Backward to show right-side field)
+        for(let a = -p.PI/2; a <= p.PI/2; a+=0.3) {
+            // Mirror logic: Right face of South pole, integrate backwards
+            seeds.push({x: southX + 10, y: cy + p.sin(a)*10, dir: -1});
+        }
+
+        seeds.forEach(seed => {
+            let currX = seed.x;
+            let currY = seed.y;
+            let drawing = false; // Are we currently in a beginShape?
+
+            // We can't use a single beginShape because lines might be broken
+            // So we'll draw individual segments if they are revealed
+            
+            p.beginShape();
+            for(let i=0; i<400; i++) { // Increased trace length
+                // Check if this segment is revealed
+                let revealed = isRevealed(currX, currY);
+
+                if (revealed) {
+                    if (!drawing) {
+                        p.beginShape();
+                        p.vertex(currX, currY);
+                        drawing = true;
+                    }
+                } else {
+                     if (drawing) {
+                         p.vertex(currX, currY);
+                         p.endShape();
+                         drawing = false;
+                     }
+                }
+
+                // Physics Trace
+                let B = calculateField(currX, currY);
+                let mag = Math.hypot(B.x, B.y);
+                if (mag === 0) break;
+                
+                // If dir is -1 (Backward integration), flip vector
+                let dx = (B.x / mag) * stepSize * seed.dir;
+                let dy = (B.y / mag) * stepSize * seed.dir;
+
+                if (drawing) {
+                    p.vertex(currX, currY);
+                }
+                
+                currX += dx;
+                currY += dy;
+
+                // Bounds Check roughly
+                if (currX < 0 || currX > p.width || currY < 0 || currY > p.height) {
+                    if(drawing) p.endShape();
+                    break;
+                }
+                
+                // Hit Magnet Check
+                if (Math.abs(currX - cx) < magnetWidth/2 && Math.abs(currY - cy) < magnetHeight/2) {
+                    if(drawing) p.endShape();
+                    break;
+                }
+            }
+            if (drawing) p.endShape();
+        });
+    }
 
     function drawShaker() {
         p.push();
@@ -139,40 +274,8 @@ const sketchMagnet = (p) => {
             return;
         }
 
-        // Calc Angle based on Dipole Field
-        // North (-x), South (+x) relative to center
-        // Let's assume standard physics: Field lines leave North, enter South.
-        // My draw code: N is Left (negative x), S is Right (positive x).
-        // Pole locations (approximate monopole locations)
-        const poleDist = magnetWidth * 0.4; // Slightly inside the ends
-        const northX = cx - poleDist;
-        const southX = cx + poleDist;
-        
-        // Vector from North Pole to point
-        const rNx = x - northX;
-        const rNy = y - cy;
-        const distN = Math.hypot(rNx, rNy);
-        
-        // Vector from South Pole to point
-        const rSx = x - southX;
-        const rSy = y - cy;
-        const distS = Math.hypot(rSx, rSy);
-
-        // Field from North (Repulsive "Mono-charge" +q)
-        // B ~ r_hat / r^2
-        const Bnx = rNx / Math.pow(distN, 3);
-        const Bny = rNy / Math.pow(distN, 3);
-
-        // Field from South (Attracive "Mono-charge" -q)
-        // B ~ - r_hat / r^2
-        const Bsx = -rSx / Math.pow(distS, 3);
-        const Bsy = -rSy / Math.pow(distS, 3);
-
-        // Net Field
-        const Bx = Bnx + Bsx;
-        const By = Bny + Bsy;
-
-        const angle = Math.atan2(By, Bx);
+        const field = calculateField(x, y);
+        const angle = Math.atan2(field.y, field.x);
 
         filings.push({
             x: x,
@@ -180,8 +283,13 @@ const sketchMagnet = (p) => {
             angle: angle
         });
         
-        // Limit count for performance
-        if (filings.length > 1500) filings.shift();
+        // Mark grid cell as revealed
+        let gx = Math.floor(x / GRID_SIZE);
+        let gy = Math.floor(y / GRID_SIZE);
+        revealedGrid.add(`${gx},${gy}`);
+        
+        // Limit increased significantly to prevent disappearance
+        if (filings.length > 5000) filings.shift();
     }
 
     p.mousePressed = () => {
