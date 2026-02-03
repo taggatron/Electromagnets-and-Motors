@@ -9,9 +9,12 @@ const sketchMagnet = (p) => {
     let revealedGrid = new Map();
     const GRID_SIZE = 20;
 
-    // Toggle Button
+    // Toggle Buttons
     let linesVisible = true;
-    let toggleBtn;
+    let filingsVisible = true;
+    let toggleLinesBtn;
+    let toggleFilingsBtn;
+    let toggleContainer;
 
     // Virtual Shaker State
     let shaker = {
@@ -43,18 +46,32 @@ const sketchMagnet = (p) => {
 
         // Clear btn
         const btn = p.select('#sim-magnet-clear');
+        toggleContainer = p.select('#sim-magnet-toggles');
+        
         if (btn) btn.mousePressed(() => {
             filings = [];
             revealedGrid.clear();
-            if(toggleBtn) toggleBtn.addClass('hidden');
+            if(toggleContainer) toggleContainer.addClass('hidden');
         });
 
-        // Toggle Lines Button logic
-        toggleBtn = p.select('#sim-magnet-toggle-lines');
-        if (toggleBtn) {
-            toggleBtn.mousePressed(() => {
+        // Toggle Buttons logic
+        toggleLinesBtn = p.select('#sim-magnet-toggle-lines');
+        toggleFilingsBtn = p.select('#sim-magnet-toggle-filings');
+        
+        if (toggleLinesBtn) {
+            toggleLinesBtn.mousePressed(() => {
                 linesVisible = !linesVisible;
-                toggleBtn.html(linesVisible ? "Hide Field Lines" : "Show Field Lines");
+                toggleLinesBtn.html(linesVisible ? "Hide Lines" : "Show Lines");
+                // Update opacity to indicate state
+                toggleLinesBtn.style('opacity', linesVisible ? '1' : '0.5');
+            });
+        }
+        
+        if (toggleFilingsBtn) {
+            toggleFilingsBtn.mousePressed(() => {
+                filingsVisible = !filingsVisible;
+                toggleFilingsBtn.html(filingsVisible ? "Hide Filings" : "Show Filings");
+                toggleFilingsBtn.style('opacity', filingsVisible ? '1' : '0.5');
             });
         }
     };
@@ -72,13 +89,11 @@ const sketchMagnet = (p) => {
             drawFieldLines();
         }
 
-        // Check if enough filings to show button
+        // Check if enough filings to show buttons
         // Threshold: e.g. 50 grid cells have at least 1 filing
-        if (toggleBtn && toggleBtn.hasClass('hidden')) {
+        if (toggleContainer && toggleContainer.hasClass('hidden')) {
             if (revealedGrid.size > 25) { 
-                toggleBtn.removeClass('hidden');
-                // Ensure text is correct if logic reset
-                toggleBtn.html(linesVisible ? "Hide Field Lines" : "Show Field Lines");
+                toggleContainer.removeClass('hidden');
             }
         }
 
@@ -104,14 +119,17 @@ const sketchMagnet = (p) => {
         p.pop();
 
         // 3. Draw Filings
-        p.stroke(200);
-        p.strokeWeight(1.5);
-        for (let f of filings) {
-            p.push();
-            p.translate(f.x, f.y);
-            p.rotate(f.angle);
-            p.line(-3, 0, 3, 0); // Small filing line
-            p.pop();
+        // Only draw if toggled ON
+        if (filingsVisible) {
+            p.stroke(200);
+            p.strokeWeight(1.5);
+            for (let f of filings) {
+                p.push();
+                p.translate(f.x, f.y);
+                p.rotate(f.angle);
+                p.line(-3, 0, 3, 0); // Small filing line
+                p.pop();
+            }
         }
 
         // 4. Draw Shaker (if not dragging, reset tilt)

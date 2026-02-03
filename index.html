@@ -99,10 +99,15 @@
                                     <span><strong>Magnet:</strong> Observe the N-S pattern</span>
                                 </li>
                             </ul>
-                            <!-- Hidden toggle button -->
-                            <button id="sim-magnet-toggle-lines" class="hidden w-full mt-2 bg-blue-600 hover:bg-blue-500 py-1.5 rounded text-xs font-bold transition">
-                                Hide Field Lines
-                            </button>
+                            <!-- Hidden toggle buttons -->
+                            <div id="sim-magnet-toggles" class="hidden flex gap-2 mt-2">
+                                <button id="sim-magnet-toggle-lines" class="flex-1 bg-blue-600 hover:bg-blue-500 py-1.5 rounded text-xs font-bold transition">
+                                    Hide Lines
+                                </button>
+                                <button id="sim-magnet-toggle-filings" class="flex-1 bg-indigo-600 hover:bg-indigo-500 py-1.5 rounded text-xs font-bold transition">
+                                    Hide Filings
+                                </button>
+                            </div>
                         </div>
                         <p class="text-xs text-slate-400">Drag the shaker over the canvas to drop filings!</p>
                         <button id="sim-magnet-clear" class="w-full mt-2 bg-red-600 hover:bg-red-500 py-2 rounded text-sm font-bold transition">Clear Filings</button>
