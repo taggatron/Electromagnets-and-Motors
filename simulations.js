@@ -954,15 +954,11 @@ const sketch1 = (p) => {
         p.rect(p.width/2, p.height/2 - 50, 200, 40, 5);
 
         // Draw Field Lines (opacity based on strength)
-        p.noFill();
         // Scale opacity so lines are visible but faint if weak
-        let opacity = hasCore ? p.map(strength, 0, 4, 0, 255) : p.map(strength, 0, 0.8, 0, 150);
+        let opacity = hasCore ? p.map(strength, 0, 4, 0, 200) : p.map(strength, 0, 0.8, 0, 100);
         
-        p.stroke(255, 255, 255, opacity); // White lines for dark background
-        p.strokeWeight(2);
-        for(let i=1; i<=3; i++) {
-            p.arc(p.width/2, p.height/2 - 50, 220 + i*40, 100 + i*60, p.PI, 0);
-            p.arc(p.width/2, p.height/2 - 50, 220 + i*40, 100 + i*60, 0, p.PI);
+        if (opacity > 5) {
+            drawRealisticFieldLines(opacity);
         }
         
         // --- Draw Wires & Current Arrows ---
@@ -1064,6 +1060,111 @@ const sketch1 = (p) => {
         p.noStroke();
         p.triangle(0, 0, -10, -5, -10, 5);
         p.pop();
+    }
+
+    function calculateSolenoidField(x, y) {
+        const cx = p.width / 2;
+        const cy = p.height / 2 - 50; 
+        const poleDist = 90; 
+        const northX = cx - poleDist; 
+        const southX = cx + poleDist;
+        
+        const rNx = x - northX;
+        const rNy = y - cy;
+        const distN = Math.hypot(rNx, rNy) || 1;
+        
+        const rSx = x - southX;
+        const rSy = y - cy;
+        const distS = Math.hypot(rSx, rSy) || 1;
+
+        const Bnx = rNx / Math.pow(distN, 3);
+        const Bny = rNy / Math.pow(distN, 3);
+        const Bsx = -rSx / Math.pow(distS, 3);
+        const Bsy = -rSy / Math.pow(distS, 3);
+
+        return { x: Bnx + Bsx, y: Bny + Bsy };
+    }
+
+    function drawRealisticFieldLines(opacity) {
+        p.stroke(255, 255, 255, opacity);
+        p.strokeWeight(2);
+        p.noFill();
+
+        const cx = p.width / 2;
+        const cy = p.height / 2 - 50;
+        const stepSize = 10;
+        
+        let seeds = [];
+        
+        // North Pole (Left) seeds
+        for (let a = -p.PI/2; a <= p.PI/2; a+=0.5) {
+            seeds.push({x: cx - 90 - 10, y: cy + p.sin(a)*15, dir: 1});
+        }
+        // South Pole (Right) seeds
+        for (let a = -p.PI/2; a <= p.PI/2; a+=0.5) {
+            seeds.push({x: cx + 90 + 10, y: cy + p.sin(a)*15, dir: -1});
+        }
+        // Top/Bottom
+        for(let x = -80; x <= 80; x+=30) {
+             seeds.push({x: cx + x, y: cy - 25, dir: 1});
+             seeds.push({x: cx + x, y: cy + 25, dir: 1});
+        }
+
+        seeds.forEach(seed => {
+            let currX = seed.x;
+            let currY = seed.y;
+            let distAcc = 0;
+            
+            p.beginShape();
+            p.vertex(currX, currY);
+            
+            for(let i=0; i<300; i++) {
+                let B = calculateSolenoidField(currX, currY);
+                let mag = Math.hypot(B.x, B.y);
+                if (mag === 0) break;
+                
+                let dx = (B.x / mag) * stepSize * seed.dir;
+                let dy = (B.y / mag) * stepSize * seed.dir;
+                
+                // Arrows
+                distAcc += stepSize;
+                if (distAcc > 70) {
+                    p.endShape();
+                    // Arrow
+                    p.push();
+                    p.translate(currX, currY);
+                    p.rotate(Math.atan2(B.y, B.x));
+                    p.stroke(255, 255, 255, opacity);
+                    p.fill(255, 255, 255, opacity); // Ensure fill matches
+                    p.strokeWeight(1);
+                    p.triangle(0,0,-6,-3,-6,3);
+                    p.pop();
+                    
+                    // Reset
+                    p.noFill();
+                    p.stroke(255, 255, 255, opacity);
+                    p.strokeWeight(2);
+                    
+                    distAcc = 0;
+                    p.beginShape();
+                    p.vertex(currX + dx, currY + dy);
+                }
+
+                currX += dx;
+                currY += dy;
+                
+                if (currX < 0 || currX > p.width || currY < 0 || currY > p.height) {
+                    p.vertex(currX, currY);
+                    break;
+                }
+                // Hitting the core bounds
+                if (Math.abs(currX - cx) < 95 && Math.abs(currY - cy) < 20) {
+                   break;
+                }
+                p.vertex(currX, currY);
+            }
+            p.endShape();
+        });
     }
 
     p.windowResized = () => {
