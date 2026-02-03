@@ -751,11 +751,26 @@ const sketch0 = (p) => {
         p.push();
         p.translate(compass.x, compass.y);
         
-        // Compass Body (Perspective Disc)
-        p.fill(255);
-        p.stroke(50);
+        // Draw Cylinder Body (Depth)
+        p.stroke(80); 
         p.strokeWeight(1);
-        p.ellipse(0, 0, 40, 20); // Flattened disc
+        p.fill(180); 
+        
+        const depth = 8;
+        const w = 40;
+        const h = 20; 
+        
+        p.beginShape();
+        p.vertex(-w/2, 0); 
+        p.vertex(-w/2, depth);
+        p.bezierVertex(-w/2, depth + h/2, w/2, depth + h/2, w/2, depth);
+        p.vertex(w/2, 0);
+        p.endShape(p.CLOSE);
+
+        // Top Face (Dial)
+        p.fill(250); 
+        p.stroke(100);
+        p.ellipse(0, 0, w, h);
         
         // Needle Calculation
         let dx = compass.x - cx;
@@ -763,23 +778,16 @@ const sketch0 = (p) => {
         let angle3D = p.atan2(dy, dx);
         
         // Tangent in 3D:
-        // Current UP -> Field CCW. 
-        // Tangent Angle = angle3D + 90 deg (CCW) or -90 (CW)
         let tangAngle3D = angle3D + (currentUp ? -p.HALF_PI : p.HALF_PI); 
-        // Wait, standard math: CCW from X axis. Tangent is +90.
-        // If Current UP => Thumb Up => Fingers CCW. 
-        // So Tangent = +HALF_PI.
-        // Let's check: Front (Pos Y/Z). Angle PI/2. Tangent PI. (Left). Correct.
         
         // Vector 3D
         let vx = p.cos(tangAngle3D);
         let vz = p.sin(tangAngle3D);
         
         // Project Vector back to Screen
-        // Screen Vx = Vx
-        // Screen Vy = Vz * 0.5
-        let svx = vx * 20; // Length 20
-        let svy = vz * 10; 
+        // Length 15 to match new style
+        let svx = vx * 15; 
+        let svy = vz * 7.5; // vz * 15 * 0.5 
         
         p.strokeWeight(3);
         // North Pole (Red)
@@ -793,7 +801,7 @@ const sketch0 = (p) => {
         // Center pin
         p.noStroke();
         p.fill(50);
-        p.ellipse(0,0,4,2);
+        p.ellipse(0,0,4,3);
         
         p.pop();
     };
