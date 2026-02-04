@@ -885,6 +885,290 @@ const sketch0 = (p) => {
 };
 new p5(sketch0, 'canvas0');
 
+// --- Simulation 0b: Electromagnetic Waves ---
+const sketch0b = (p) => {
+    let waves = [];
+    let frequency = 0.05; // Base frequency
+    let phase = 0;
+    let showEField = false; // Toggle state for perpendicular oscillation
+    
+    // Wave spawn timer
+    let timer = 0;
+    
+    p.setup = () => {
+        let container = p.select('#canvas0b');
+        if(!container) return; // Guard clause
+        
+        let cnv = p.createCanvas(container.width, container.height);
+        cnv.style('z-index', '10');
+        
+        const btn = p.select('#sim0b-toggle-freq');
+        if (btn) btn.mousePressed(() => {
+            frequency = (frequency === 0.05) ? 0.15 : 0.05;
+        });
+
+        const btnEField = p.select('#sim0b-toggle-efield');
+        if (btnEField) btnEField.mousePressed(() => {
+            showEField = !showEField;
+            btnEField.html(showEField ? "Hide E-Field" : "Show E-Field");
+        });
+    };
+
+    p.draw = () => {
+        p.clear();
+        let cx = p.width / 2;
+        let cy = p.height / 2;
+
+        // Update Physics
+        phase += frequency;
+        let currentMag = p.sin(phase);
+        let currentDir = currentMag > 0;
+        
+        // Spawn Waves
+        // We spawn a wave crest when currentMag peaks? 
+        // Or just spawn continuously to show density?
+        // Let's spawn a "field line ring" periodically.
+        // The "direction" of the field line depends on the current AT THE TIME OF SPAWNING.
+        
+        // Let's spawn linearly and assigning them a 'fieldStrength' based on currentMag
+        if (p.frameCount % 5 === 0) {
+            waves.push({
+                r: 0,
+                strength: currentMag, // +1 (Up/CCW) to -1 (Down/CW)
+                opacity: 255
+            });
+        }
+
+        // Draw Current on Wire
+        drawCurrentFlow(p, cx, cy, currentMag);
+
+        // Draw Waves
+        p.push();
+        p.translate(cx, cy);
+        p.noFill();
+        p.strokeWeight(2);
+        
+        // Speed of wave propagation
+        let speed = 2; 
+
+        for (let i = waves.length - 1; i >= 0; i--) {
+            let w = waves[i];
+            w.r += speed;
+            w.opacity = p.map(w.r, 0, 300, 255, 0); // Fade out
+            
+            if (w.opacity <= 0) {
+                waves.splice(i, 1);
+                continue;
+            }
+            
+            // Only draw if strength is significant (peaks and troughs)
+            // Or draw intensity mapped to opacity
+            // If we just mapped sin wave to rings, we'd have a lot of rings.
+            
+            // Let's visualize the "peaks" (crests) primarily.
+            // If strength is > 0.8 or < -0.8? 
+            // Better: Just draw 'em all but transparency based on strength abs value?
+            
+            let alpha = w.opacity * Math.abs(w.strength);
+            if(alpha < 10) continue;
+            
+            p.stroke(255, 255, 255, alpha);
+            
+            let rx = w.r;
+            let ry = w.r * 0.5; // Aspect ratio
+            p.ellipse(0, 0, rx*2, ry*2);
+            
+            // Draw Direction Arrows
+            // Logic: Current Up (strength > 0) -> Field CCW.
+            // Logic: Current Down (strength < 0) -> Field CW.
+            
+            // Right side (x > 0): 
+            // CCW -> Into Page (Up/-90)? No.
+            // CCW Top View: Arrow points "Up" at Right? NO.
+            // CCW = Counter Clockwise. At 3 o'clock (Right), Tangent is Up (screen Y negative).
+            // But this is 3D perspective.
+            // Let's use standard convention we used in Sim0.
+            // Sim0: Current Up -> Field Into Page at Right side.
+            // Into Page means Vector Z is positive (away). On screen, Y is negative (Up)?
+            // Sim0 has: Current Up -> Right Point Angle -90 (Up).
+            
+            // So: Strength > 0 (Up) -> Right Angle -90 (Up).
+            //     Strength < 0 (Down) -> Right Angle 90 (Down).
+            
+            let arrowAngleR = (w.strength > 0) ? -90 : 90;
+            let arrowAngleL = (w.strength > 0) ? 90 : -90;
+            
+            // Only draw arrows on strong waves
+            if (Math.abs(w.strength) > 0.5) {
+                drawIsoArrow(p, rx, 0, arrowAngleR);
+                drawIsoArrow(p, -rx, 0, arrowAngleL);
+
+                // Draw Perpendicular E-Field (Blue)
+                if (showEField) {
+                    // E-field is vertical (parallel to wire) for Hertzian dipole in far field
+                    // Direction: E is perp to B and propagation.
+                    // Propagation is Radially Outward.
+                    // B is Tangential (Horizontal Loop).
+                    // E is Vertical (Up/Down).
+                    
+                    // Phase relation: E and B are in phase in a plane wave.
+                    // If Current is UP (Strength > 0), B on right is INTO PAGE.
+                    // Poynting Vector S = E x B is OUTWARD (Radial).
+                    // Radial is +X. B is +Z (Into page). 
+                    // E x (+Z) = (+X) => E must be -Y (Up on screen? No, +Y is down in p5).
+                    // Let's use Right Hand Rule: S = E x B
+                    // S points Right (+X).
+                    // B (Right side) points Into Page (+Z).
+                    // Thumb (S) Right, Fingers (E) ? -> Curl to B (Into).
+                    // If E is Down (+Y), E x B -> Down x Into -> Right.
+                    // So: Strength > 0 (Current Up) -> E-field is Down.
+                    
+                    // Inverse Logic: Current oscillates charge.
+                    // Top becomes positive, bottom negative (Dipole).
+                    // E-field points + to - (Down).
+                    // So Current Up -> Accumulates + at Top -> E-field Down.
+                    // This matches Poynting vector check.
+                    
+                    // Visual: Vertical Blue Line/Arrow
+                    // Length proportional to strength
+                    
+                    let eLength = 60 * w.strength * -1; // -1 to point Down for positive strength
+                    
+                    // Right Side E-field
+                    drawEFieldVector(p, rx, 0, eLength);
+                    // Left Side E-field
+                    drawEFieldVector(p, -rx, 0, eLength);
+                }
+            }
+        }
+        p.pop();
+    };
+
+    // Helper functions copied from sketch0 (local scope)
+    function drawEFieldVector(p, x, y, len) {
+        p.push();
+        p.translate(x, y);
+        p.stroke(59, 130, 246, 200); // Blue-500
+        p.strokeWeight(3);
+        p.line(0, -len/2, 0, len/2);
+        
+        // Arrow head at end (direction)
+        p.push();
+        p.translate(0, len/2);
+        if (len < 0) p.rotate(p.PI); // If length is negative (Up), rotate head
+        
+        // Wait, 'len' sign determines visual direction?
+        // drawing line from -len/2 to len/2 centers it.
+        // Let's draw from 0 to len? No, oscillation is centered.
+        // Let's keep it centered.
+        
+        // Draw arrow head at the "positive" end of the vector relative to its sign
+        p.translate(0, (len > 0 ? 0 : 0)); // Already at end?
+        // Actually, let's simplify. Arrow points in direction of 'len'.
+        // If len > 0 (Down), Arrow at bottom.
+        // If len < 0 (Up), Arrow at top.
+        
+        p.noStroke();
+        p.fill(59, 130, 246, 200);
+        
+        // Draw a triangle pointing in the direction
+        // If len > 0, we are at +len/2 (Bottom). Pointing down.
+        // If len < 0, we are at -len/2 (Top). Pointing up.
+        
+        // Let's just draw an arrow from 0 to len
+        p.pop();
+        p.pop();
+        
+        // Redraw for clarity
+        p.push();
+        p.translate(x, y);
+        p.stroke(59, 130, 246, 200);
+        p.strokeWeight(3);
+        // Draw from center 0 to len (magnitude and direction)
+        // Actually wave oscillates centered on the axis usually?
+        // Let's draw it as a vertical vector standing on the propagation plane?
+        // Or floating centered? Centered looks like "vibration".
+        p.line(0, 0, 0, len);
+        
+        // Arrowhead
+        p.translate(0, len);
+        p.rotate(len > 0 ? 0 : p.PI); // Point down or up
+        p.noStroke();
+        p.fill(59, 130, 246);
+        p.triangle(-3, -6, 3, -6, 0, 0);
+        p.pop();
+    }
+
+    function drawIsoArrow(p, x, y, angleDeg) {
+        p.push();
+        p.translate(x, y);
+        p.rotate(p.radians(angleDeg));
+        p.noFill();
+        p.stroke(255, 255, 0, 200); // Yellow
+        p.strokeWeight(2);
+        p.beginShape();
+        p.vertex(-5, -5);
+        p.vertex(5, 0);
+        p.vertex(-5, 5);
+        p.endShape();
+        p.pop();
+    }
+
+    function drawCurrentFlow(p, cx, cy, strength) {
+        // Strength -1 to 1
+        // Direction based on sign
+        let isUp = strength > 0;
+        let mag = Math.abs(strength);
+        
+        p.stroke(255, 255, 255, mag * 255);
+        p.strokeWeight(2);
+        p.noFill();
+        
+        // Moving dashed effect?
+        // Or just big arrow representing current vector?
+        // Let's use the moving chevron style but modulate speed/alpha.
+        
+        let speed = 2 * strength; // Speed coupled to current
+        let spacing = 60;
+        let offset = (p.frameCount * 2) % spacing; // Constant flow speed visual, but fade out when 0?
+        // Or flow follows current? If current changes dir, flow changes dir.
+        
+        // Let's keep offset strictly increasing but flip drawing?
+        // Actually, just draw static-ish chevrons that fade in/out is clearer for AC.
+        // "Moving" electrons in 60Hz is a blur anyway.
+        // I will propagate them visually in direction.
+        
+        let animOffset = (p.frameCount * 2 * Math.sign(strength)) % spacing;
+        
+        let topY = cy - 130;
+        let bottomY = cy + 130;
+        
+        for (let y = topY; y <= bottomY; y += spacing) {
+            let drawY = y + animOffset;
+            
+            // Wrap limits (rough)
+             if (drawY > bottomY + 20) drawY -= (bottomY - topY + 40);
+             if (drawY < topY - 20) drawY += (bottomY - topY + 40);
+            
+             // Mask to wire length
+             if(drawY < topY || drawY > bottomY) continue;
+
+            p.push();
+            p.translate(cx, drawY);
+            if (!isUp) p.rotate(p.PI);
+            
+            // Chevron
+            p.beginShape();
+            p.vertex(-5, 5);
+            p.vertex(0, -5);
+            p.vertex(5, 5);
+            p.endShape();
+            p.pop();
+        }
+    }
+};
+new p5(sketch0b, 'canvas0b');
+
 // --- Simulation 1: Electromagnet ---
 const sketch1 = (p) => {
     let currentSlider, turnsSlider, coreToggle;
